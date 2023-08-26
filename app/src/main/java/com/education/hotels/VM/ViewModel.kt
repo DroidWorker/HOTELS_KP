@@ -1,35 +1,19 @@
 package com.education.hotels.VM
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.education.hotels.ConSQL
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.sql.*
 
-class AppViewModel : ViewModel() {
+class AppViewModel() : ViewModel() {
 
      val hotels = MutableStateFlow<List<Hotel>>(emptyList())
      val hotelInfo = MutableStateFlow<HotelInfo?>(null)
      val rooms = MutableStateFlow<List<Room>>(emptyList())
      val bookingIfo = MutableStateFlow<List<BookingInfo>>(emptyList())
 
-    // Инициализация базы данных и соединения
-    private val url = "jdbc:sqlserver://192.168.1.9:1433/DESKTOP-F1CTFP8"
-    private val user = "mobileConnection"
-    private val password = "mobileConnection"
-    private var connection: Connection? = null
-
-    init {
-        connect()
-    }
-
-    private fun connect() {
-        val c = ConSQL()
-        connection = c.conclass()
-    }
+    var connection: Connection? = null
 
     private fun disconnect() {
         connection?.close()
@@ -68,18 +52,17 @@ class AppViewModel : ViewModel() {
 
     fun getHotelInfo(id: Int) {
         var _hotelInfo : HotelInfo? = null
-        val sql = "SELECT * FROM dbo.GetHotelInfoById(@hotel_id);"
+
+        val sql = "SELECT * FROM dbo.GetHotelInfoById(?);"
         try {
             val preparedStatement = connection?.prepareStatement(sql)
             preparedStatement?.setInt(1, id)
-
             val resultSet = preparedStatement?.executeQuery()
-
             while (resultSet?.next() == true) {
                 val hotelId = resultSet.getInt("hotel_id")
                 val hotelName = resultSet.getString("hotel_name")
                 val hotelAddress = resultSet.getString("hotel_address")
-                val hotelPhone = resultSet.getString("phone ")
+                val hotelPhone = resultSet.getString("phone")
                 val hotelEmail = resultSet.getString("email")
                 val hotelDirection = resultSet.getString("directions")
                 val classification = resultSet.getString("hotel_classification")
@@ -98,6 +81,7 @@ class AppViewModel : ViewModel() {
             }
             hotelInfo.tryEmit(_hotelInfo)
         } catch (e: SQLException) {
+            println("eeeeeeerrrrrrrtytyt"+e.localizedMessage)
             e.printStackTrace()
         }
     }
@@ -130,8 +114,8 @@ class AppViewModel : ViewModel() {
         val sql = "{ CALL SearchAvailableRooms(?, ?) }"
         try {
             val callableStatement = connection?.prepareCall(sql)
-            callableStatement?.setDate(1, java.sql.Date(checkInDate.time))
-            callableStatement?.setDate(2, java.sql.Date(checkOutDate.time))
+            callableStatement?.setDate(1, Date(checkInDate.time))
+            callableStatement?.setDate(2, Date(checkOutDate.time))
 
             val resultSet = callableStatement?.executeQuery()
             while (resultSet?.next() == true) {
@@ -265,7 +249,7 @@ data class HotelInfo(
     val hotelAddress: String,
     val hotelPhone: String,
     val hotelEmail: String,
-    val hotelDirection: String,
+    val hotelDirection: String?,
     val classification: String,
     val roomInventory: Int
 )

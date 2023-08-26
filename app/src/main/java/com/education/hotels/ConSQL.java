@@ -12,10 +12,10 @@ public class ConSQL {
 
     @SuppressLint("NewApi")
     public Connection conclass() {
-        String ip = "192.168.1.9", port = "1433", db = "IRS_HOTELS", username = "mobileConnection", password = "mobileConnection";
+        String ip = "192.168.1.5", port = "1433", db = "IRS_HOTELS", username = "mobileConnection", password = "mobileConnection";
         StrictMode.ThreadPolicy a = new StrictMode.ThreadPolicy.Builder().permitAll().build();
         StrictMode.setThreadPolicy(a);
-        String connectURL = null;
+        String connectURL;
 
         try {
             Class.forName("net.sourceforge.jtds.jdbc.Driver");

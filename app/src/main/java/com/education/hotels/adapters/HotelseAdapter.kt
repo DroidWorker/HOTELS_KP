@@ -11,6 +11,9 @@ import com.education.hotels.VM.Hotel
 class HotelsAdapter(context: Context) : RecyclerView.Adapter<HotelsAdapter.HotelViewHolder>() {
     var hotels: List<Hotel> = emptyList()
     var ctx: Context? = null
+
+    var onItemClick: ((Int) -> Unit)? = null
+
     init {
         ctx = context
     }
@@ -34,6 +37,9 @@ class HotelsAdapter(context: Context) : RecyclerView.Adapter<HotelsAdapter.Hotel
 
     inner class HotelViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         fun bind(hotel: Hotel) {
+            itemView.setOnClickListener{
+                onItemClick?.invoke(hotel.hotelId)
+            }
             val frc =  itemView.findViewById<TextView>(R.id.free_rooms_count)
             var starText = ""
             try {
