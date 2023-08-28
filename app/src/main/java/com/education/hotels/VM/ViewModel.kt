@@ -1,23 +1,33 @@
 package com.education.hotels.VM
 
-import androidx.lifecycle.ViewModel
-import com.education.hotels.ConSQL
+import android.app.Application
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import androidx.lifecycle.AndroidViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.math.BigDecimal
 import java.sql.*
 
-class AppViewModel() : ViewModel() {
+class AppViewModel(val app: Application) : AndroidViewModel(app) {
 
      val hotels = MutableStateFlow<List<Hotel>>(emptyList())
      val hotelInfo = MutableStateFlow<HotelInfo?>(null)
      val rooms = MutableStateFlow<List<Room>>(emptyList())
+     val roomInfo = MutableStateFlow<Room?>(null)
      val bookingIfo = MutableStateFlow<List<BookingInfo>>(emptyList())
 
     var connection: Connection? = null
 
-    private fun disconnect() {
-        connection?.close()
-    }
+    val sharedPreference = app.getSharedPreferences("appSettings", Context.MODE_PRIVATE)
+    var editor = sharedPreference.edit()
+
+    var userPhone : String?
+        get() = sharedPreference.getString("userPhone", null)
+        set(value) {
+            editor.putString("userPhone", value)
+            editor.apply()
+        }
 
     // Получение данных о гостиницах из базы данных
     fun fetchHotels() {
@@ -64,9 +74,11 @@ class AppViewModel() : ViewModel() {
                 val hotelAddress = resultSet.getString("hotel_address")
                 val hotelPhone = resultSet.getString("phone")
                 val hotelEmail = resultSet.getString("email")
-                val hotelDirection = resultSet.getString("directions")
+                val hotelDirection = resultSet.getBytes("directions")
                 val classification = resultSet.getString("hotel_classification")
                 val roomInventory = resultSet.getInt("room_inventory")
+
+                val image = BitmapFactory.decodeByteArray(hotelDirection, 0, hotelDirection.size)
 
                 _hotelInfo = HotelInfo(
                         hotelId,
@@ -74,7 +86,7 @@ class AppViewModel() : ViewModel() {
                         hotelAddress,
                         hotelPhone,
                         hotelEmail,
-                        hotelDirection,
+                        image,
                         classification,
                         roomInventory
                     )
@@ -89,7 +101,7 @@ class AppViewModel() : ViewModel() {
     // Получение данных о номерах из базы данных
     fun fetchRooms(id: Int) {
         val roomsList = mutableListOf<Room>()
-        val sql = "SELECT * FROM dbo.GetRoomsInfoByHotelId(@hotel_id)"
+        val sql = "SELECT * FROM dbo.GetRoomsInfoByHotelId(?)"
         try {
             val preparedStatement = connection?.prepareStatement(sql)
             preparedStatement?.setInt(1, id)
@@ -106,6 +118,7 @@ class AppViewModel() : ViewModel() {
             rooms.tryEmit(roomsList)
         } catch (e: SQLException) {
             e.printStackTrace()
+            println("eeeeeerrrrrr ooo"+e.localizedMessage)
         }
     }
 
@@ -133,8 +146,8 @@ class AppViewModel() : ViewModel() {
     }
 
     fun fetchRoomInfoById(roomId: Int) {
-        var _hotelInfo : HotelInfo? = null
-        val sql = "SELECT * FROM dbo.GetRoomInfoById(@room_id);"
+        var _roomInfo : Room? = null
+        val sql = "SELECT * FROM dbo.GetRoomInfoById(?);"
         try {
             val preparedStatement = connection?.prepareStatement(sql)
             preparedStatement?.setInt(1, roomId)
@@ -143,35 +156,30 @@ class AppViewModel() : ViewModel() {
 
             while (resultSet?.next() == true) {
                 val hotelId = resultSet.getInt("hotel_id")
-                val hotelName = resultSet.getString("hotel_name")
-                val hotelAddress = resultSet.getString("hotel_address")
-                val hotelPhone = resultSet.getString("phone ")
-                val hotelEmail = resultSet.getString("email")
-                val hotelDirection = resultSet.getString("directions")
-                val classification = resultSet.getString("hotel_classification")
-                val roomInventory = resultSet.getInt("room_inventory")
+                val roomNumber = resultSet.getString("room_number")
+                val roomFreenow = resultSet.getBoolean("room_freenow")
+                val placesNumber = resultSet.getInt("places_number")
+                val roomprice = resultSet.getBigDecimal("room_price")
 
-                _hotelInfo = HotelInfo(
+                _roomInfo = Room(
                     hotelId,
-                    hotelName,
-                    hotelAddress,
-                    hotelPhone,
-                    hotelEmail,
-                    hotelDirection,
-                    classification,
-                    roomInventory
+                    roomNumber,
+                    roomFreenow,
+                    placesNumber,
+                    roomprice
                 )
             }
-            hotelInfo.tryEmit(_hotelInfo)
+            roomInfo.tryEmit(_roomInfo)
         } catch (e: SQLException) {
             e.printStackTrace()
+            println("eeeeeeerrrrrr lll"+e.localizedMessage)
         }
     }
 
     fun bookRoom(roomId: Int, customerName: String, customerPhone: String, checkInDate: Timestamp, checkOutDate: Timestamp, totalPrice: BigDecimal) {
         try {
             // SQL-запрос для вызова хранимой процедуры AddBooking
-            val sql = "{ CALL InsertBooking(?, ?, ?, ?, ?, ?) }"
+            val sql = "{ CALL InsertBooking(?, ?, ?, ?, ?, ?, ?) }"
 
             // Создание CallableStatement
             val callableStatement = connection?.prepareCall(sql)
@@ -188,15 +196,15 @@ class AppViewModel() : ViewModel() {
 
             // Закрытие ресурсов
             callableStatement?.close()
-
         } catch (e: SQLException) {
             e.printStackTrace()
+            println("eeeeeerrrrrr "+e.localizedMessage)
         }
     }
 
     fun fetchBookingInfoByPhone(phoneNumber: String) {
         var bookingInfo = mutableListOf<BookingInfo>()
-        val sql = "SELECT * FROM dbo.GetBookingInfoByPhoneNumber(@phone_number);"
+        val sql = "SELECT * FROM dbo.GetBookingInfoByPhoneNumber(?);"
         try {
             val preparedStatement = connection?.prepareStatement(sql)
             preparedStatement?.setString(1, phoneNumber)
@@ -207,8 +215,9 @@ class AppViewModel() : ViewModel() {
                 val name = resultSet.getString("customer_name")
                 val checkInDate = resultSet.getString("checkin_date")
                 val checkOutDate = resultSet.getString("checkout_date")
+                val roomNumber = resultSet.getString("room_number")
                 val placesNumber = resultSet.getInt("places_number")
-                val totalPrice = resultSet.getInt("total_price")
+                val totalPrice = resultSet.getBigDecimal("total_price")
                 val hotelId = resultSet.getInt("hotel_id")
 
                 bookingInfo.add(BookingInfo(
@@ -216,6 +225,7 @@ class AppViewModel() : ViewModel() {
                     checkInDate,
                     phoneNumber,
                     checkOutDate,
+                    roomNumber,
                     placesNumber,
                     totalPrice,
                     hotelId
@@ -224,13 +234,8 @@ class AppViewModel() : ViewModel() {
             bookingIfo.tryEmit(bookingInfo)
         } catch (e: SQLException) {
             e.printStackTrace()
+            println("eeeeeerrrrrr opopo"+e.localizedMessage)
         }
-    }
-
-    // Закрытие соединения с базой данных
-    override fun onCleared() {
-        disconnect()
-        super.onCleared()
     }
 }
 
@@ -249,7 +254,7 @@ data class HotelInfo(
     val hotelAddress: String,
     val hotelPhone: String,
     val hotelEmail: String,
-    val hotelDirection: String?,
+    val hotelDirection: Bitmap?,
     val classification: String,
     val roomInventory: Int
 )
@@ -267,7 +272,8 @@ data class BookingInfo(
     val checkInDate: String,
     val phoneNumber: String,
     val checkOutDate: String,
+    val roomNumber: String,
     val placesNumber: Int,
-    val totalPrice: Int,
+    val totalPrice: BigDecimal,
     val hotelId: Int
 )

@@ -1,5 +1,6 @@
 package com.education.hotels.adapters
 import android.content.Context
+import android.graphics.Bitmap
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,6 +9,8 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.education.hotels.R
 import com.education.hotels.VM.Room
+import java.math.RoundingMode
+import java.text.DecimalFormat
 
 class RoomsAdapter(context: Context) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     var rooms: List<RoomAdapterItem> = emptyList()
@@ -25,7 +28,7 @@ class RoomsAdapter(context: Context) : RecyclerView.Adapter<RecyclerView.ViewHol
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        return if(viewType==0) RoomViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.hotel_item, parent, false))
+        return if(viewType==0) RoomViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.room_item, parent, false))
         else AdapterTitleViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.hotel_activity_info_item, parent, false))
     }
 
@@ -46,13 +49,16 @@ class RoomsAdapter(context: Context) : RecyclerView.Adapter<RecyclerView.ViewHol
         fun bind(room: Room) {
             itemView.setOnClickListener{
                 onItemClick?.invoke(room.roomId)
-                itemView.findViewById<TextView>(R.id.room_number).text = room.roomNumber
-                itemView.findViewById<TextView>(R.id.is_free_now).text = if(room.availability) "Доступен сейчас" else "Недоступен сейчас"
-                itemView.findViewById<TextView>(R.id.places_num).text = room.placesNumber.toString()+(if(room.placesNumber==1)" место" else if(room.placesNumber in 2..4)" места" else " мест")
-                itemView.findViewById<TextView>(R.id.room_price).text = room.roomPrice.toString()+" р."
-
             }
 
+            val df = DecimalFormat("#.##")
+            df.roundingMode = RoundingMode.DOWN
+            val resprice = (df.format(room.roomPrice)).toString()+" p."
+
+            itemView.findViewById<TextView>(R.id.room_number).text = room.roomNumber
+            itemView.findViewById<TextView>(R.id.is_free_now).text = if(room.availability) "Доступен сейчас" else "Недоступен сейчас"
+            itemView.findViewById<TextView>(R.id.places_num).text = room.placesNumber.toString()+(if(room.placesNumber==1)" место" else if(room.placesNumber in 2..4)" места" else " мест")
+            itemView.findViewById<TextView>(R.id.room_price).text = resprice
         }
     }
 
@@ -62,7 +68,9 @@ class RoomsAdapter(context: Context) : RecyclerView.Adapter<RecyclerView.ViewHol
             (itemView.findViewById<TextView>(R.id.hotel_email)).text = adapterTitle.hotelEmail
             (itemView.findViewById<TextView>(R.id.hotel__phone)).text = adapterTitle.hotelPhone
             (itemView.findViewById<TextView>(R.id.textView4)).text = "Доступно номеров: "+adapterTitle.roomAvailable
-            (itemView.findViewById<ImageView>(R.id.imageView))
+            if(adapterTitle.photo!=null){
+                (itemView.findViewById<ImageView>(R.id.imageView)).setImageBitmap(adapterTitle.photo)
+            }
         }
     }
 }
@@ -79,5 +87,5 @@ data class RoomAdapterTitle(
     var hotelPhone: String,
     var hotelEmail: String,
     var roomAvailable: Int,
-    var photo: String
+    var photo: Bitmap?
 )

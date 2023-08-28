@@ -1,5 +1,6 @@
 package com.education.hotels
 
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.TextView
@@ -19,13 +20,15 @@ class HotelActivity : AppCompatActivity() {
     lateinit var starField : TextView
     lateinit var hotelName : TextView
     lateinit var adapter: RoomsAdapter
-    var roomAdapterTitle: RoomAdapterTitle? = null
+    private var roomAdapterTitle: RoomAdapterTitle? = null
     var roomItemList:List<Room> = emptyList()
+    var hotelname = ""
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hotel)
         appViewModel.connection = (application as MyApp).connection
-
+        (application as MyApp).subscribe()
         intent.getIntExtra("hotelId", 0).let { if(it!=0) {
             appViewModel.getHotelInfo(it)
             appViewModel.fetchRooms(it)
@@ -35,7 +38,10 @@ class HotelActivity : AppCompatActivity() {
 
         adapter = RoomsAdapter(this)
         adapter.onItemClick={
-
+            val intent = Intent(this@HotelActivity, RoomActivity::class.java)
+            intent.putExtra("roomId", it)
+            intent.putExtra("hotelName", hotelname)
+            startActivity(intent)
         }
         val rv = findViewById<RecyclerView>(R.id.roomsRV)
         rv.layoutManager = LinearLayoutManager(this@HotelActivity)
@@ -44,11 +50,16 @@ class HotelActivity : AppCompatActivity() {
         observe()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        (application as MyApp).cancelSub()
+    }
+
     private fun observe(){
         lifecycleScope.launch {
             appViewModel.hotelInfo.collect{hotel->
                 if(hotel!=null){
-                    roomAdapterTitle = RoomAdapterTitle(hotel.hotelAddress, hotel.hotelPhone, hotel.hotelEmail, hotel.roomInventory, hotel.hotelDirection?:"")
+                    roomAdapterTitle = RoomAdapterTitle(hotel.hotelAddress, hotel.hotelPhone, hotel.hotelEmail, hotel.roomInventory, hotel.hotelDirection)
                     val resultList : ArrayList<RoomAdapterItem> = ArrayList()
                     resultList.add(RoomAdapterItem(0, 1, roomAdapterTitle, null))
                     for(i in roomItemList.indices){
@@ -68,6 +79,7 @@ class HotelActivity : AppCompatActivity() {
                 }
                 starField.text = starText
                 hotelName.text = hotel?.hotelName?:""
+                hotelname = hotel?.hotelName?:""
             }
 
         }
