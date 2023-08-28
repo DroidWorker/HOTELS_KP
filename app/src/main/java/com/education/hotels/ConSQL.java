@@ -9,10 +9,16 @@ import java.sql.DriverManager;
 
 public class ConSQL {
     Connection con;
+    String ip = "192.168.1.1";
+
+    public ConSQL(String ip){
+        if(ip!=null)
+            this.ip = ip;
+    }
 
     @SuppressLint("NewApi")
     public Connection conclass() {
-        String ip = "192.168.1.5", port = "1433", db = "IRS_HOTELS", username = "mobileConnection", password = "mobileConnection";
+        String port = "1433", db = "IRS_HOTELS", username = "mobileConnection", password = "mobileConnection";
         StrictMode.ThreadPolicy a = new StrictMode.ThreadPolicy.Builder().permitAll().build();
         StrictMode.setThreadPolicy(a);
         String connectURL;
