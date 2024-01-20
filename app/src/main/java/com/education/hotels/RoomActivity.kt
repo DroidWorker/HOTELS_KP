@@ -89,7 +89,7 @@ class RoomActivity : AppCompatActivity() {
         buttonOk.setOnClickListener{
             if(validate()){
                 appViewModel.userPhone = pphone.text.toString()
-                appViewModel.bookRoom(
+                val result: String = appViewModel.bookRoom(
                     roomId,
                     name.text.toString(),
                     pphone.text.toString(),
@@ -97,6 +97,7 @@ class RoomActivity : AppCompatActivity() {
                     Timestamp(checkoutdate.time.time),
                     totalPrice
                     )
+                Toast.makeText(this@RoomActivity, result, Toast.LENGTH_LONG).show();
                 finish()
             }
         }

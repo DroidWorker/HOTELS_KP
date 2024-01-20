@@ -176,9 +176,9 @@ class AppViewModel(val app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun bookRoom(roomId: Int, customerName: String, customerPhone: String, checkInDate: Timestamp, checkOutDate: Timestamp, totalPrice: BigDecimal) {
+    fun bookRoom(roomId: Int, customerName: String, customerPhone: String, checkInDate: Timestamp, checkOutDate: Timestamp, totalPrice: BigDecimal): String {
         try {
-            // SQL-запрос для вызова хранимой процедуры AddBooking
+            // SQL-запрос для вызова хранимой процедуры InsertBooking
             val sql = "{ CALL InsertBooking(?, ?, ?, ?, ?, ?, ?) }"
 
             // Создание CallableStatement
@@ -196,11 +196,17 @@ class AppViewModel(val app: Application) : AndroidViewModel(app) {
 
             // Закрытие ресурсов
             callableStatement?.close()
+
+            return "Операция успешна!"
         } catch (e: SQLException) {
             e.printStackTrace()
-            println("eeeeeerrrrrr "+e.localizedMessage)
+            println("eeeeeerrrrrr " + e.localizedMessage)
+
+            // Обработка ошибки и возврат сообщения
+            return "Ошибка при бронировании: ${e.localizedMessage}"
         }
     }
+
 
     fun fetchBookingInfoByPhone(phoneNumber: String) {
         var bookingInfo = mutableListOf<BookingInfo>()
